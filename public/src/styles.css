@@ -3,3 +3,18 @@
 .manual-editor{margin-top:16px;border:1px solid #cfddec;border-radius:12px;background:#f9fbff;padding:12px 15px}.manual-editor summary{font-size:13px;color:#245bc8;font-weight:700;cursor:pointer}.manual-fields{margin-top:15px}.manual-fields textarea{min-height:86px;resize:vertical}.manual-fields .field-grid{margin-bottom:14px}
 
 .confirm-lesson{display:flex;align-items:start;gap:8px;color:#925e12;background:#fff9eb;padding:12px;border:1px solid #f2ddaf;border-radius:10px;font-size:13px;margin:8px 0 12px}.confirm-lesson input{height:17px;width:17px;margin-top:2px}
+
+/* HSKT settings – only visible when inclusion is selected. */
+.inclusion-options{margin:-5px 0 16px 0;border:1px solid #dfc2f5;background:#fcf8ff;border-radius:13px;padding:17px 19px;color:#55247e;box-shadow:0 3px 12px #9c42d30a}
+.inclusion-options[hidden]{display:none!important}
+.inclusion-group + .inclusion-group{border-top:1px solid #e9d6f6;margin-top:15px;padding-top:15px}
+.inclusion-group h3{font-size:14px;margin:0 0 12px;color:#652395}
+.inclusion-radios{display:flex;gap:22px;flex-wrap:wrap}
+.inclusion-radios label,.disability-grid label{display:flex;align-items:start;gap:8px;cursor:pointer;color:#432c59;font-size:13px;font-weight:560}
+.inclusion-options input{width:17px;height:17px;accent-color:#7c3aed;flex-shrink:0;margin-top:2px}
+.disability-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+.math-preference{margin:12px 0 5px;border-top:1px solid #e6e9ef;padding-top:13px}
+.math-preference>label{font-size:13px;font-weight:600;display:flex;align-items:start;gap:8px}
+.math-preference input{width:17px;height:17px;flex-shrink:0;margin-top:3px}
+.math-preference code{background:#f4f5fb;border-radius:4px;padding:0 4px}
+@media(max-width:620px){.disability-grid{grid-template-columns:1fr}.inclusion-options{padding:14px}.inclusion-radios{gap:12px;flex-direction:column}}

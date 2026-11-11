@@ -1,3 +1,4 @@
+import {inclusiveObjectives,inclusiveActivity} from './inclusion-policy.js';
 import {normalize} from './docx-engine.js';
 const significant = s => normalize(s).split(' ').filter(x=>x.length>=3 && !['bai','chuong','tiet','tap','hoc','toan','tin','lop'].includes(x));
 export const lessonKey = x => `${x.subject}|${x.grade}|${x.track}|${x.name}|${x.periods.join(',')}`;
@@ -33,26 +34,32 @@ export function sourceList(lesson,types){
   if(types.includes('NLAI'))list.push(...lesson.ai.map(x=>({...x,type:'NLAI'})));
   return list;
 }
-export function offlineProposals(lesson,opened,types){
+export function offlineProposals(lesson,opened,types, inclusive={}){
   const anchors=opened.snapshot.anchors;
   const firstGoal=anchors.find(x=>x.id==='goals-competency');
   const hGoal=anchors.find(x=>x.id==='goals-inclusion');
   const act=anchors.find(x=>x.kind==='activity' && x.step==='Bước 1');
-  const act2=anchors.find(x=>x.kind==='activity' && x.step==='Bước 2')||act;
+  const act2=anchors.find(x=>x.kind==='activity' && x.step==='Bước 2');
+  const tail=anchors.find(x=>x.kind==='activity-end')||null;
+  const home=anchors.find(x=>x.kind==='homework')||null;
   const res=[];
   for(const type of ['NLS','NLAI']) {
     if(!types.includes(type))continue;
     const codes=(type==='NLS'?lesson.nls:lesson.ai).slice(0,2);
     for(const item of codes){
       const raw=item.text.replace(/^Học sinh\s*/i,'HS ').replace(/^HS\s*/i,'HS ');
-      res.push({type,code:item.code,anchorId:firstGoal?.id||'',content:raw||`Phát triển ${type} ${item.code} trong bài học.`,reason:'Không tìm thấy mục tiêu năng lực phù hợp.',accepted:true});
+      res.push({type,code:item.code,anchorId:firstGoal?.id||'',content:raw||`Phát triển ${type} ${item.code} trong bài học.`,reason:'Không tìm thấy mục tiêu năng lực phù hợp.',accepted:true,slot:'goal'});
       const target=type==='NLS'?act:act2;
-      res.push({type,code:item.code,anchorId:target?.id||'',content:`GV giao nhiệm vụ cho HS: ${raw.charAt(0).toLowerCase()+raw.slice(1)}`,reason:'Không tìm được bước thực hiện phù hợp với hoạt động.',accepted:true});
+      res.push({type,code:item.code,anchorId:target?.id||'',content:`GV giao nhiệm vụ cho HS: ${raw.charAt(0).toLowerCase()+raw.slice(1)}`,reason:'Không tìm được bước thực hiện phù hợp với hoạt động.',accepted:true,slot:'activity'});
+      if(type==='NLS' && item===codes[0]){
+        res.push({type,code:'',anchorId:tail?.id||'',content:'HS trình bày kết quả nhiệm vụ NLS ngay trong bài tập SGK và nêu cách đã kiểm chứng.',reason:'Không xác định được cuối Bước 1.',accepted:true,slot:'step1-summary'});
+        res.push({type,code:'',anchorId:home?.id||'',content:'Ôn lại bài tập SGK và thực hành một nhiệm vụ số ngắn phù hợp điều kiện thiết bị của lớp.',reason:'Không xác định mục Hướng dẫn về nhà.',accepted:true,slot:'homework'});
+      }
     }
   }
   if(types.includes('HSHN')){
-    res.push({type:'HSHN',code:'',anchorId:hGoal?.id||'',content:`HS được hỗ trợ đạt yêu cầu trọng tâm của bài ${lesson.name} thông qua nhiệm vụ chia nhỏ và hướng dẫn từng bước; mức điều chỉnh do GV quyết định.`,reason:'Không có tiểu mục mục tiêu giáo dục hòa nhập.',accepted:true});
-    res.push({type:'HSHN',code:'',anchorId:act2?.id||'',content:'GV cung cấp phiếu có gợi ý từng bước, cho HS thêm thời gian, bố trí bạn học hỗ trợ và đánh giá theo khả năng thực hiện thực tế.',reason:'Không xác định được Bước 2 hoặc hoạt động phù hợp.',accepted:true});
+    res.push({type:'HSHN',code:'',anchorId:hGoal?.id||'',content:inclusiveObjectives(opened,lesson,inclusive),reason:'Không có tiểu mục mục tiêu giáo dục hòa nhập.',accepted:true,slot:'goal'});
+    res.push({type:'HSHN',code:'',anchorId:act2?.id||'',content:inclusiveActivity(lesson,inclusive),reason:'Không xác định được Bước 2 hoặc cột Hoạt động GV và HS.',accepted:true,slot:'activity'});
   }
   return res;
 }

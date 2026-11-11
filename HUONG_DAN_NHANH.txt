@@ -1,23 +1,20 @@
-SMART KHBD AI 1.0 - HUONG DAN NHANH (GitHub + Vercel)
+SMART KHBD AI 1.1.0 - CAP NHAT GIAO DUC HOA NHAP + EQUATION
 
-1) Giai nen file ZIP, mo thu muc smart-khbd-ai.
-2) Tao repository tren GitHub. Upload TAT CA noi dung trong thu muc nay.
-   Cac tep bat buoc o goc repository: vercel.json, package.json, README.md,
-   thu muc api va thu muc public.
-3) Vao Vercel -> Add New -> Project -> chon repository vua tao.
-4) Framework Preset: Other; Build Command: de trong; Output Directory: public.
-5) Deploy. Web se co dia chi dang https://ten-du-an.vercel.app
-6) Vao web, bam cai dat (hinh banh rang), nhap Gemini API Key tu AI Studio.
-   Bam Kiem tra va Lay danh sach model. Khong can sua code de dien key.
-7) Tai file .docx, chon dung mon/lop/bai/tiet. Danh dau NLS, NLAI, HSHN.
-8) Phan tich -> duyet/doi vi tri -> Xuat Word.
-9) Neu chua co API Key, chon che do Khong dung API de tao goi y tu KHDH.
+1) Giai nen ZIP. Mo thu muc smart-khbd-ai.
+2) Tai TOAN BO noi dung ben trong thu muc nay len GOC repo GitHub dang ket noi Vercel.
+3) Ghi de cac tep trung ten, commit. KHONG can tao Vercel project moi.
+4) Sau khi deploy xong, Ctrl+Shift+R va kiem tra footer 1.1.0.
+5) Vao web -> Cai dat -> nhap API Key, lay danh sach model, chon model dung duoc.
+6) Tai giao an Word DOCX, chon bai / tiet, tick NLS / NLAI / HSHN.
+7) Neu tick HSHN, khung tim mo ngay ben duoi:
+   - Co NLS / Khong NLS cho HSKT. Mac dinh Khong NLS.
+   - Chon 1 hoac nhieu trong 6 loai khuyet tat.
+8) Khi xuat Word, cong thuc LaTeX MOI $...$ duoc chuyen thanh Word Equation.
+9) Tieng LaTeX CU trong DOCX: chi chuyen neu tick o tuy chon rieng.
+10) Duyet noi dung -> Xuat Word. Neu khong tim thay vi tri an toan, co phu luc cuoi.
 
-LUU Y:
-- Khong can tai PPCT moi lan. Da co du lieu Toan/Tin 6-9 nam 2026-2027.
-- KHONG thay the file Word goc, KHONG viet lai bang/cac cong thuc Equation.
-- Neu khong xac dinh noi chen, noi dung duoc ghi o phu luc cuoi giao an.
-- Luon mo file .docx xuat ra bang Microsoft Word de kiem tra truoc khi su dung.
-- Du lieu NLS/NLAI duoc doc tu cac KHDH da gui; mot so ma Toan 9 Bai 6
-  chi la ma tham khao tu giao an mau, khong phai ma tu KHDH to.
-- Read README.md de xem huong dan day du va cac gioi han ky thuat.
+CHU Y:
+- PDF la tai lieu mau tham chieu, KHONG phai file Word goc de chinh sua.
+- Chi upload DOCX neu can giu nguyen bang, hinh, Equation va format.
+- Neu xu ly khong the bao toan, khong tu dong tao lai giao an bang HTML.
+- Doc README.md de biet chi tiet va gioi han.

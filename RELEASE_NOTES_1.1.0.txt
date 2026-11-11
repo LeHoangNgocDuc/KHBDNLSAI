@@ -1,0 +1,15 @@
+Smart KHBD AI 1.1.0 - cap nhat tu 1.0.1
+
+- Khi bat HSHN, mo khung dieu khien viền tim ngay duoi checkbox.
+- Radio NLS cho HSKT: Co / Khong, mac dinh Khong.
+- 6 checkbox loai khuyet tat, cho phep chon nhieu.
+- Prompt Gemini dua tren muc tieu doc tu Word, day du quy tac NLS / NLAI / HSHN theo SGK.
+- Muc tieu HSKT rieng voi 1.Kien thuc, 2.Nang luc, 3.Pham chat, GDHN.KT, GDHN.KN.
+- Chuan hoa vi tri NLS/NLAI Buoc 1, HSHN Buoc 2; khong tu doan o bang.
+- Trang thai chua chen duoc ghi cu the vao phu luc cuoi giao an.
+- Doi mau moi: NLS DC2626, NLAI 2563EB, HSHN 7C3AED.
+- Chuyen LaTeX moi $...$ thanh Equation OOXML. Chuyen LaTeX cu theo tuy chon.
+- 21 bai test tu dong; da kiem tra DOCX render.
+- Giu module API/model va du lieu KHDH 8 mon-khoi.
+
+GIOI HAN: File PDF chi la tai lieu mau. Khong cam ket PDF->DOCX 100%.

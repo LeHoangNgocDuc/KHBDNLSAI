@@ -1,140 +1,80 @@
-# Smart KHBD AI 1.0 – Tích hợp NLS, NLAI và HSHN vào giáo án Word gốc
+# SMART KHBD AI 1.1.0 - Tích hợp NLS / NLAI / HSHN vào giáo án Word gốc
 
-**Dành cho giáo viên Trường THCS Nam Nha Trang – Năm học 2026–2027.**
+Trường THCS Nam Nha Trang - Năm học 2026-2027. Nâng cấp từ Smart KHBD AI 1.0.1.
 
-Ứng dụng sử dụng giao diện HTML/CSS/JavaScript thuần, chạy trên Vercel với một Vercel Function nhỏ làm cầu nối Gemini API. **Không cần tải PPCT mỗi lần làm việc.** File DOCX được đọc và sửa trực tiếp trong trình duyệt; chỉ gửi ngữ cảnh ngắn gồm đề mục, hoạt động và chỉ số năng lực tới Gemini khi giáo viên chọn sử dụng API.
+## 1. Triển khai trên GitHub và Vercel
 
-## 1. Tính năng đã lập trình
+1. Giải nén `Smart_KHBD_AI_1.1.0_GitHub_Vercel.zip`.
+2. Mở thư mục `smart-khbd-ai`. Upload **nội dung bên trong** thư mục đó lên **gốc** repository GitHub đang liên kết với web Vercel (không đặt thêm một lớp thư mục ở gốc). Thay thế các file trùng tên. Giữ lại các tệp từ bản cũ nếu có điều chỉnh cá nhân chưa được gộp.
+3. Vercel sẽ tự build/deploy khi nhận commit nếu đang kết nối GitHub. Nếu tạo dự án mới: Framework `Other`, Output Directory `public`, Build Command để trống. Các cấu hình Function và header nằm trong `vercel.json`.
+4. Sau khi Vercel triển khai, mở trang, Ctrl+Shift+R. Footer hiển thị `Smart KHBD AI 1.1.0`.
+5. Mở Cài đặt (⚙), nhập Gemini API Key; chọn hoặc tự lấy danh sách model. Có thể chọn chế độ không API nếu cần kiểm tra luồng chỉnh sửa Word mà chưa có key.
 
-- Tải một file **`.docx`** (mặc định giới hạn 20 MB), tự đọc cấu trúc tài liệu, số bảng và các đối tượng Equation.
-- Tự gợi ý môn, khối, tên bài, đối chiếu với danh mục KHDH Toán 6–9 và Tin học 6–9 (411 mục, gồm cả bài ôn tập/kiểm tra).
-- Lấy mã và mô tả NLS/NLAI từ các nguồn KHDH, đồng thời ghi rõ trường hợp nguồn chỉ là **giáo án mẫu tham khảo**.
-- Gemini đề xuất nội dung và vị trí chèn dưới dạng JSON; chỉ giữ lại những mã có thật trong dữ liệu được chọn.
-- Có chế độ **không API** tạo đề xuất ban đầu dựa trên KHDH để giáo viên tự duyệt.
-- Duyệt/sửa/xóa chọn từng đề xuất, đổi vị trí chèn, hoặc chọn "chưa xác định → ghi cuối giáo án".
-- Chức năng nhập đề xuất thủ công cho trường hợp tài liệu KHDH thiếu mã. Nội dung thủ công được đánh dấu nguồn.
-- Chèn vào **cấu trúc DOCX gốc** (không tạo lại file từ HTML); giữ nguyên mọi tệp ZIP khác ngoài `word/document.xml`.
-- Có chống thêm lặp nội dung theo mã ở cùng mục/hoạt động và theo nội dung tương đương; nội dung HSHN đã có trong hoạt động được ưu tiên giữ nguyên.
-- Tích hợp NLS màu đỏ, NLAI xanh lam, HSHN tím; font Times New Roman cho đoạn **mới**.
-- Nếu không tìm được vị trí, ghi đủ: loại, mã, vị trí mong muốn, lý do, nội dung vào **phụ lục cuối giáo án**.
-- Nhiều API Key do giáo viên nhập, chia nhóm project/quota, chọn model chính và dự phòng, chế độ luân phiên model và kiểm tra key.
+## 2. Cách sử dụng
 
-**Điều chưa tự động làm:** Chuyển hoặc thay thế công thức Equation cũ. Đây là chủ ý nhằm giữ nguyên các công thức/đối tượng nhúng đang có. Nếu đề xuất văn bản của AI chứa LaTeX, hệ thống **chưa tạo Equation mới** từ LaTeX, vì vậy không nên yêu cầu AI bổ sung công thức toán dài; kiểm tra bản Word sau xuất khi có công thức.
+1. Chọn môn, khối và tải lên **giáo án gốc .docx**. Chọn đúng bài/tiết KHDH. Ứng dụng đã có danh mục Toán/Tin 6-9, không cần tải KHDH mỗi lần.
+2. Chọn NLS, NLAI và/hoặc HSHN. Khi đánh dấu HSHN, một khung viền tím xuất hiện:
+   - Radio: `Có tích hợp NLS` / `Không tích hợp NLS`; mặc định **không tích hợp NLS cho HSKT**.
+   - Chọn nhiều dạng khuyết tật: nhìn, nghe, vận động, trí tuệ/phát triển, ngôn ngữ/giao tiếp, khác. Không cần lưu tên hay tình trạng y tế học sinh.
+3. Tùy chọn **chuyển LaTeX đã có trong Word thành Equation** mặc định TẮT. Chỉ bật nếu Word gốc chứa công thức ở dạng `$...$` cần chuyển; lưu ý việc này sẽ thay đổi chính các đoạn có LaTeX thô (không thể vừa chuyển chúng vừa giữ nguyên tuyệt đối từng ký tự của đoạn đó).
+4. Nhấn `PHÂN TÍCH VÀ ĐỀ XUẤT`, duyệt/sửa từng nội dung, kiểm tra vị trí, nhấn `XUẤT WORD GIỮ NGUYÊN BẢN GỐC`.
+5. Luôn mở file DOCX xuất ra bằng Microsoft Word và xem lại vị trí chèn, phân trang, bảng, Equation trước khi sử dụng.
 
-## 2. TRIỂN KHAI LÊN GITHUB → VERCEL (dễ nhất)
+## 3. Quy tắc sư phạm bản 1.1.0
 
-1. Giải nén tệp ZIP này. Tạo kho GitHub mới (ví dụ `smart-khbd-ai`). **Tải toàn bộ nội dung bên trong thư mục `smart-khbd-ai`** lên gốc kho, không chỉ tải `index.html`. Quan trọng có: `vercel.json`, `package.json`, `api/gemini.js`, `public/index.html`, `public/src/`, `public/data/` và `public/vendor/`.
-2. Vào [vercel.com](https://vercel.com), chọn **Add New → Project**, Import kho vừa tạo.
-3. Chọn Framework Preset **Other**. Không cần Build Command (để trống). Output Directory **public**; cấu hình đã ghi trong `vercel.json`.
-4. Nhấn Deploy. Đường dẫn có dạng `https://ten-du-an.vercel.app`.
-5. Vào trang, nhấn biểu tượng **⚙**, nhập một hoặc nhiều Gemini API Key tạo tại [Google AI Studio](https://aistudio.google.com/app/apikey); bấm **Kiểm tra** rồi **Lấy danh sách model** để chọn model đang khả dụng.
-6. Tải giáo án `.docx`, kiểm tra môn/lớp/bài/tiết, chọn NLS–NLAI–HSHN, nhấn **Phân tích và đề xuất**, duyệt nội dung và **Xuất Word**.
+- **NLS** màu đỏ `#DC2626`, **NLAI** màu xanh lam `#2563EB`, **HSHN** màu tím `#7C3AED`. Nội dung thêm dùng Times New Roman.
+- Mục tiêu NLS/NLAI ở cuối phần `2. Năng lực`, trước `3. Phẩm chất`.
+- Mục tiêu HSKT ở cuối phần I, sau phần `3. Phẩm chất`, tạo khối riêng `* MỤC TIÊU DÀNH CHO HỌC SINH KHUYẾT TẬT` gồm kiến thức đơn giản hóa, năng lực chung/riêng, phẩm chất, `GDHN.KT`, `GDHN.KN`.
+- NLS, NLAI gắn bài tập/ví dụ SGK ở `Bước 1: Chuyển giao nhiệm vụ`. NLS còn có thể tổng kết cuối Bước 1 và tạo nhiệm vụ trong Hướng dẫn về nhà nếu xác định được anchor.
+- HSHN gắn `Bước 2: Thực hiện nhiệm vụ`, đúng cột hoạt động giáo viên và học sinh. HSKT không chọn NLS sẽ được hỗ trợ với phiếu gợi ý, nhiệm vụ nhỏ, máy tính cầm tay (khi cần), không giao thao tác phần mềm/Internet như nhiệm vụ NLS.
+- AI chỉ trả lại **đề xuất có vị trí**. Chương trình tự kiểm tra anchor, cột và bước dạy trước khi chèn. Không được chèn vào cột `SẢN PHẨM DỰ KIẾN` chỉ vì đó là cột phải.
+- Khi không tìm chắc vị trí chèn, chương trình đưa nội dung vào **phụ lục cuối giáo án**, ghi mã, vị trí dự kiến và nguyên nhân. Nội dung đó có trạng thái `APPENDED_UNPLACED`, không tính là đã chèn thành công.
+- Chống lặp theo mã chỉ số và hoạt động: tài liệu đã có nội dung tương ứng sẽ không thêm lần nữa.
 
-**Không cần điền API Key vào file mã nguồn hoặc Vercel Environment Variables.** Khóa được giáo viên nhập trong tab làm việc; chỉ gửi qua kết nối HTTPS tới `api/gemini.js` (cầu nối server) khi gọi Google. Trang không lưu khóa lên server, GitHub hoặc `localStorage`. Khi tải lại/đóng tab cần nhập lại khóa.
+## 4. Equation và tài liệu nguồn
 
-Nếu triển khai web cho nhiều người, nên bật **Deployment Protection / xác thực người dùng** tại Vercel để hạn chế truy cập không mong muốn. Không nên tải lên văn bản chứa thông tin cá nhân nhạy cảm của học sinh.
+- **Công thức OMML/Equation gốc** trong DOCX được giữ nguyên. File DOCX được chỉnh sửa bằng OOXML, không tái tạo từ HTML.
+- **Công thức LaTeX mới** do AI đề xuất trong `$...$` sẽ được chương trình chuyển thành **Word Equation (OMML)** khi xuất. Có hỗ trợ đại số thường dùng: số mũ, chỉ số, phân số, căn, bất đẳng thức, tập số, một số ký hiệu hình học, hệ phương trình `cases` dạng cơ bản.
+- Khi bật tùy chọn, các công thức LaTeX cũ nằm **trọn trong một `w:t`** của Word được chuyển sang Equation. Công thức nằm rải qua nhiều run hoặc cú pháp không hỗ trợ không được chuyển tự động; báo thống kê nội dung không xử lý được. Có loại cú pháp không hỗ trợ sẽ ngăn việc chèn mới, tránh xuất công thức hỏng.
+- File `.pdf` được cung cấp **chỉ là mẫu đối chiếu**. Để bảo toàn tài liệu tối đa và giữ các Equation gốc, hãy tải file **Word `.docx`**, không dùng PDF để thay Word. Việc tái tạo PDF thành Word sửa được không thể cam kết giữ nguyên 100% bảng, hình, công thức.
+- Có thể thay đổi số trang hoặc vị trí xuống dòng do nội dung bổ sung. Các thuộc tính gốc của bảng, hình ảnh, công thức không được viết lại.
 
-## 3. Quy trình sử dụng
+## 5. Bảo mật và API
 
-1. **Chọn file Word gốc:** Không cần tạo lại giáo án. Ứng dụng không ghi đè file trên máy người dùng.
-2. **Kiểm tra bài KHDH:** Trường `Bài học khớp ...` có thể chọn lại bằng tay. Với Toán, lưu ý trùng tên giữa Đại số/Hình học hoặc khác nhau số tiết.
-3. **Tích hợp:** Tick những loại mong muốn, chọn mức độ và điều kiện thiết bị.
-4. **AI hoặc không API:** Chọn `Gemini AI` để tạo đề xuất; chọn `Không dùng API` khi chưa có key hoặc chỉ muốn tham khảo các mô tả đã có trong KHDH.
-5. **Duyệt:** Giữ hoặc bỏ từng đề xuất, chỉnh lại câu chữ và chọn đúng ô bảng/bước tổ chức. Khi nghi ngờ chỗ chèn, chọn `Chưa xác định → ghi vào cuối`.
-6. **Xuất Word:** Hệ thống chạy kiểm tra XML, bảng, Equation và các đối tượng trước khi tạo file tải về. Giáo viên cần mở bằng Microsoft Word để rà lại ngắt trang và độ dài bảng.
+- Nhiều Gemini API Key do người dùng nhập trong tab. Không lưu khóa vào `localStorage` hay GitHub. Khóa đi qua HTTPS tới Vercel Function để gọi Gemini. Cấu hình nhóm project/quota và model dự phòng giữ từ bản 1.0.1.
+- Nhiều key trong cùng một Google Cloud project **không tăng quota**. Tên model hợp lệ phụ thuộc key; nút `Lấy danh sách model` lấy từ Google API thay vì tin hoàn toàn tên model có sẵn.
+- Không tải các hồ sơ y tế, thông tin cá nhân học sinh vào giáo án cần gửi AI. Phần thiết lập chỉ cần loại hỗ trợ chung, không có thông tin định danh.
+- Khi Gemini báo lỗi, hệ thống giữ nguyên tài liệu; có chế độ gợi ý từ KHDH không dùng API để giáo viên duyệt.
 
-### Nguồn dữ liệu tích hợp
+## 6. Kiểm thử
 
-- Toán 6: `KHDH Toan 6_26_27_Dieu chinh_8_9_2026.pdf`.
-- Toán 7–9: 3 file `KHDH-TOÁN ...docx`.
-- Tin học 6–9: 4 file `KHDH ...-cá nhân.docx`, ưu tiên vì có cột NLS và AI, trong khi các bản chia tuần chủ yếu cung cấp tiến độ.
-- Riêng Toán 9 Bài 6, bộ dữ liệu bổ sung các mã từ giáo án mẫu `DS9_T9_T23_24_B6.docx` và **ghi rõ là mã tham khảo từ mẫu, không coi là mã trích từ KHDH Toán 9**.
-
-Một số bài KHDH thực sự không có mã NLS hoặc NLAI. Chương trình không tự bịa mã. Giáo viên có thể bổ sung mã thủ công khi có nguồn chuyên môn thích hợp.
-
-### Màu quy ước
-
-- **NLS:** Times New Roman, `#FF0000`.
-- **NLAI:** Times New Roman, `#0066CC`.
-- **HSHN:** Times New Roman, `#7C3AED`.
-
-## 4. Điều phối API/model
-
-- **Tự động:** Ưu tiên model chính và key đang bật, chuyển model/key khi có lỗi phù hợp.
-- **Luân phiên:** Luân phiên giữa model chính và dự phòng theo lần phân tích.
-- **Thủ công:** Chỉ sử dụng model chính; vẫn có thể chuyển sang key khác đang bật khi cần.
-- Khi HTTP **429** xuất hiện, đánh dấu nhóm project/quota đó không tiếp tục thử trong cùng lượt phân tích. Các key thuộc **cùng project dùng chung quota**; việc tạo thêm key không tăng hạn mức của project.
-- Khi key bị thu hồi hoặc không đủ quyền, web báo lỗi. Khi tất cả key/model lỗi, file Word gốc được giữ nguyên, không có file lỗi âm thầm.
-
-## 5. Nguyên tắc kỹ thuật bảo toàn tài liệu
-
-`public/src/docx-engine.js` sử dụng JSZip và DOMParser trên trình duyệt để thao tác **thêm paragraph XML**, không xóa/mở rộng bảng, không viết lại các paragraph đã tồn tại. Sau khi chèn, kiểm tra:
-
-1. Từng paragraph gốc vẫn giữ XML tương đương trước xử lý.
-2. Số lượng bảng giữ nguyên.
-3. Số đối tượng OMML và object Word giữ nguyên.
-4. Tệp DOCX parse lại được, xuất dưới dạng DOCX hợp lệ.
-5. Tất cả mục ZIP khác ngoài `word/document.xml` giữ nguyên (kiểm thử binary).
-
-**Giới hạn kỹ thuật:** `XMLSerializer` có thể chuẩn hóa cách biểu diễn XML của tài liệu mà không làm thay đổi ý nghĩa OOXML. Do đó không thể cam kết toàn bộ file DOCX có byte-level equality với nguồn; mục tiêu là bảo toàn các thành phần, nội dung và định dạng. Nội dung bổ sung có thể làm bảng giãn trang. Tài liệu quá đặc biệt (liên kết OLE phức tạp, macro, nội dung được bảo vệ, bố cục VBA) cần kiểm tra thủ công. Chỉ nhận `.docx`, không nhận `.doc` và `.docm`.
-
-## 6. Chạy thử không dùng Vercel
-
-**Chỉ kiểm thử chức năng tải/đọc/soạn offline/xuất Word:**
-
-```bash
-python -m http.server 8080 -d public
-```
-
-Mở `http://localhost:8080`, chọn **Không dùng API**. Nút gọi Gemini cần Vercel Function, vì Python HTTP server chỉ phục vụ file tĩnh. Để thử nghiệm đầy đủ trên máy có cài Vercel CLI:
-
-```bash
-npx vercel dev
-```
-
-Hệ thống không có cơ sở dữ liệu; tất cả kế hoạch dạy học đã được đưa vào `public/data/catalog.json`.
-
-### Cập nhật KHDH
-
-Để cập nhật toàn bộ danh mục từ 8 file kế hoạch đúng tên được cung cấp, chỉnh thư mục nguồn trong `scripts/build_catalog.py` (biến `SRC`), cài `python-docx`, `PyMuPDF`, sau đó chạy:
-
-```bash
-python scripts/build_catalog.py
-```
-
-Kiểm tra đầu ra `public/data/catalog.json` và đối chiếu mã chỉ số trước khi đưa lên GitHub. Script chứa phần bổ sung tham khảo từ giáo án mẫu; có thể bỏ hoặc thay bằng dữ liệu KHDH được phê duyệt.
-
-## 7. Kiểm thử
-
-Với Node.js 20+ và Internet:
+Yêu cầu Node.js >= 20. Trong thư mục chứa `package.json`, chạy:
 
 ```bash
 npm install
 npm test
 ```
 
-Bộ test chạy kiểm tra API proxy giả lập, vị trí chèn, chống chèn trùng, và so sánh binary ZIP (trừ `word/document.xml`). Trong môi trường phát triển đã chạy thử với file Toán 9 `DS9_T9_T23_24_B6.docx`: **7/7 test đạt**; file xuất có thể chuyển sang PDF bằng LibreOffice với 20 trang, kiểm tra hình ảnh đầu/cuối trang và bảng hoạt động. Đây chưa phải kiểm thử Gemini API thật với khóa người dùng hay nghiệm thu giao diện sau triển khai Vercel.
+Bản 1.1.0 có **21 kiểm thử tự động** (API proxy, model fallback, nhận diện bảng, chống chèn trùng, mục tiêu HSKT, chế độ NLS HSKT, LaTeX -> OMML, chuyển LaTeX đã có, bảo toàn các ZIP part ngoài `word/document.xml`). Đã dựng được file Word kiểm thử thành 20 trang bằng LibreOffice và kiểm tra hình Equation hiển thị đúng. **Chưa kiểm thử cuộc gọi Gemini thật bằng API Key của người dùng hoặc xác nhận UI trên Vercel sau deployment**.
 
-## 8. Cấu trúc mã nguồn
+## 7. Cấu trúc nguồn chính
 
 ```text
 smart-khbd-ai/
-├── api/gemini.js                 # Vercel Function, không lưu API key
-├── public/index.html            # Web mobile/desktop
-├── public/src/main.js           # Giao diện, kiểm duyệt, quản trị API/model
-├── public/src/catalog.js        # Đối chiếu bài/KHDH
-├── public/src/docx-engine.js    # Chèn nội dung đúng vị trí DOCX gốc
-├── public/src/styles.css        # UI EdTech
-├── public/data/catalog.json     # 8 bộ kế hoạch được chuẩn hóa
-├── public/vendor/jszip.min.js   # Thư viện ZIP độc lập, bản phân phối
-├── scripts/build_catalog.py     # Tạo lại dữ liệu nguồn
-├── tests/                        # Bộ test + file Word thử nghiệm tự tạo
-├── package.json
-└── vercel.json
+  api/gemini.js               - API proxy Gemini / model list
+  public/index.html           - UI responsive
+  public/src/main.js          - Điều phối giao diện/AI/duyệt
+  public/src/catalog.js       - Tra cứu KHDH và gợi ý offline
+  public/src/inclusion-policy.js - Nhiệm vụ HSKT, 6 dạng hỗ trợ
+  public/src/docx-engine.js   - Chỉnh sửa DOCX OOXML
+  public/src/word-math.js     - LaTeX sang Word Equation (OMML)
+  public/src/model-policy.js  - Quản lý ưu tiên model
+  public/src/styles.css       - Giao diện
+  public/data/catalog.json   - Dữ liệu KHDH Toán/Tin 6-9
+  public/vendor/jszip.min.js  - JSZip
+  tests/                     - Kiểm thử
+  scripts/build_catalog.py    - Script lập lại danh mục KHDH
+  package.json / vercel.json
 ```
 
-Thư viện JSZip có giấy phép riêng trong `public/vendor/jszip-LICENSE.md`.
-
----
-
-**Điều kiện nghiệm thu chuyên môn:** Luôn kiểm tra đúng môn, khối, bài, tiết, mã năng lực; trường hợp không tìm thấy vị trí, chuyển đề xuất xuống cuối và ghi rõ lý do. Giáo viên là người duyệt và quyết định việc sử dụng.
+**Tiêu chuẩn nghiệm thu:** kết quả AI là bản đề xuất, không phải nội dung bắt buộc; giáo viên duyệt trước khi xuất. Quy trình bảo toàn Word được ưu tiên hơn việc cố gắng chèn mọi nội dung ở những vị trí thiếu thông tin.
