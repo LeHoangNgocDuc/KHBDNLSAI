@@ -1,0 +1,36 @@
+HUONG DAN CAP NHAT SMART KHBD AI 1.2.0
+
+A. CAP NHAT WEB DANG SU DUNG (KHUYEN NGHI)
+1. Tai ZIP Smart_KHBD_AI_1.2.0_Chi_Cap_Nhat.zip va giai nen.
+2. Mo GitHub repository cua du an web hien tai.
+3. Chep dung cac tep vao cung duong dan, thay cac tep cu:
+    public/index.html
+    public/src/main.js
+    public/src/docx-engine.js
+    public/src/inclusion-policy.js
+    public/src/catalog.js
+    public/src/word-math.js
+    public/src/styles.css
+    package.json
+4. Commit. Vercel thuong se tu deploy lai neu du an da ket noi GitHub.
+5. Mo trang web cu va bam Ctrl+Shift+R, kiem tra footer v1.2.0.
+6. Mo giao an Word Tin 7: neu Word chua nhieu bai, web hien o CHON BAI TRONG FILE;
+   chon bai can xu ly roi chon bai/PPCT tu catalog, nhan Phan tich.
+7. O Tuy chon nang cao, danh dau HSHN, chon loai khuyet tat, chon co/khong NLS.
+8. Duyet de xuat tai Muc I va Buoc 2 truoc khi xuat Word.
+
+B. TRIEN KHAI LAN DAU
+1. Tai ZIP Toan_bo_GITHUB_VERCEL, giai nen, dua noi dung thu muc len GitHub.
+2. Import repository vao Vercel. Framework: Other; Output directory: public.
+3. Deploy. Mo Settings trong web va nhap Gemini API Key.
+4. Co che lua chon model va du phong duoc giu nguyen tu v1.1.0.
+
+C. LUU Y
+- File PDF dung de tham khao, WEB NHAN FILE .DOCX de bao toan Word.
+- Khi chon Khong NLS HSKT: khong tao nhiem vu nang luc so bo sung rieng cho HSKT.
+- Riêng Tin hoc van giu cac thao tac cot loi cua mon hoc, co ho tro tiep can.
+- Khong nhap thong tin y te, ten HSKT hoac ho so ca nhan vao AI.
+- Chua tim duoc vi tri: ghi ro o phu luc cuoi; khong chen dai vao bang.
+- Tuy chon chuyen LaTeX cu trong Word: mac dinh TAT de giu noi dung goc.
+- Ngoai ngu, song ngu va Toan KTD chi hien the UI chua duoc kich hoat.
+- Ban da thu nghiem tu dong nhung chua thu cuoc goi Gemini bang API key ca nhan.

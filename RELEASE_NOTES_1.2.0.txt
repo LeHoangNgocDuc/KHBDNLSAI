@@ -1,0 +1,31 @@
+SMART KHBD AI 1.2.0 - HSHN THEO MUC TIEU GOC & GIAO AN TIN HOC
+Ngay cap nhat: 11/11/2026
+
+1. HSHN: Tao dung khoi muc tieu ngay sau phan Pham chat, co:
+   - 1. Kien thuc (1-2 noi dung nhan biet trich tu Word goc)
+   - 2. Nang luc -> Nang luc chung, Nang luc rieng
+   - 3. Pham chat (hai noi dung dau tu Word goc)
+   - [GDHN.KT], [GDHN.KN], xac dinh loai khuyet tat do GV chon.
+2. Tin hoc: Nhan dien muc I. Muc tieu; 2.1. Nang luc chung, 2.2. Nang luc Tin hoc;
+   nhan dien cot To chuc thuc hien (Hoat dong cua GV va HS);
+   nhan dien 1. Hoat dong 1; 2.1. Hoat dong 1; 2.1.2. Hoat dong 2...
+3. Tai lieu nhieu bai: Cho phep chon chinh xac bai trong file. Chi chen vao bai da chon.
+4. HSHN: Chen ho tro o Buoc 2 cua cac hoat dong phu hop. Khong bo qua Buoc 2
+   neu file da co HSHN o Buoc 1.
+5. NLS HSKT: Mac dinh Khong tich hop. Neu bat, bo sung ho tro thiet bi phu hop.
+6. UI: Khung tuy chon tim va 6 nhom khuyet tat, cac the mau giong anh tham khao.
+   Ngoai ngu, song ngu va Toan KTD hien duoc dat o trang thai Chua trien khai,
+   tranh tao nut bam ma khong co chuc nang.
+7. DOCX: Giu nguyen XML cac doan goc, bang, hinh, Equation va thanh phan khac.
+   Noi dung moi chu Times New Roman, NLS #DC2626, AI #2563EB, HSHN #7C3AED,
+   co co chu ke thua tu doan goc. Latex moi => Equation Word.
+8. Neu khong xac dinh duoc vi tri, ghi phu luc cuoi voi ly do.
+
+KIEM THU: 26/26 tu dong thanh cong. Thu file Word Toan BAI 36 va Tin 7 (3 bai trong 1 file),
+ da render Word va kiem tra trang chua muc tieu HSHN, bang co ho tro Buoc 2.
+CHUA NGHIEM THU: API Gemini voi key that, tuong tac browser tren Vercel.
+
+CAP NHAT:
+- Dung ZIP Chi_Cap_Nhat: chep de dung cac file vao repository GITHUB HIEN CO.
+- Neu muon tao repository moi: dung ZIP GITHUB_VERCEL.
+- Khong can doi URL Vercel, khong can tao project moi.

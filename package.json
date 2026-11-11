@@ -1,6 +1,6 @@
 {
   "name": "smart-khbd-ai",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "type": "module",
   "description": "Web bảo toàn giáo án Word và tích hợp NLS, NLAI, HSHN với Equation OMML",
