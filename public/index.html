@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#2355d2"><meta name="description" content="Tích hợp NLS, NLAI, HSHN trực tiếp vào giáo án Word gốc, giữ nguyên bảng và công thức toán.">
+  <title>Smart KHBD AI – Tích hợp giáo án Word</title>
+  <link rel="stylesheet" href="./src/styles.css">
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-inner">
+      <div class="brand-symbol">🎓</div>
+      <div class="brand-info"><div class="eyebrow">TRƯỜNG THCS NAM NHA TRANG · 2026–2027</div><h1>Smart KHBD <span>AI</span></h1><p>Chèn đúng năng lực vào <strong>giáo án Word gốc</strong> – không soạn lại, không phá bảng.</p></div>
+      <button type="button" class="icon-button settings-button" id="settingsBtn" title="Cấu hình Gemini API" aria-label="Cấu hình Gemini API">⚙</button>
+    </div>
+  </header>
+  <main class="page">
+    <div class="notice"><span class="notice-icon">✓</span><div><strong>Bảo toàn cấu trúc DOCX</strong><small>Giữ nguyên bảng, hình ảnh, Equation, phần đầu/cuối trang. Nội dung chưa xác định được chỗ chèn sẽ ghi rõ ở cuối.</small></div></div>
+    <div class="steps" aria-label="Quy trình"><div class="step active" data-step="1"><b>1</b><span>Tải giáo án</span></div><div class="line"></div><div class="step" data-step="2"><b>2</b><span>Đề xuất</span></div><div class="line"></div><div class="step" data-step="3"><b>3</b><span>Xuất Word</span></div></div>
+    <section class="panel" id="uploadPanel">
+      <h2><span class="section-mark"></span>Thông tin giáo án</h2>
+      <div class="field-grid"><label class="field">Môn học<select id="subject"><option value="Toán">Toán</option><option value="Tin">Tin học</option></select></label><label class="field">Khối lớp<select id="grade"><option value="6">Lớp 6</option><option value="7">Lớp 7</option><option value="8">Lớp 8</option><option value="9" selected>Lớp 9</option></select></label></div>
+      <label class="upload-box" id="dropZone" for="docFile"><span class="upload-glyph">⇧</span><strong>Chọn giáo án Word</strong><span>Chạm để tải hoặc kéo thả tệp .docx</span><small>File Word được xử lý cục bộ trên thiết bị; chỉ gửi ngữ cảnh bài dạy cần thiết cho Gemini.</small><input type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" id="docFile" hidden></label>
+      <div id="fileInfo" class="file-info hidden"></div>
+      <div id="lessonSection" class="hidden"><label class="field">Bài học khớp với KHDH đã tích hợp<select id="lessonSelect"></select></label><p class="helper" id="lessonHint"></p><label class="confirm-lesson hidden" id="lessonConfirm"><input type="checkbox" id="lessonConfirmCheck"> Tôi đã kiểm tra và xác nhận đúng tên bài/tiết PPCT</label><div class="source-box" id="lessonDetails"></div></div>
+    </section>
+    <section class="panel"><h2><span class="section-mark"></span>Nội dung cần bổ sung</h2>
+      <div class="check-stack">
+        <label class="option red"><input type="checkbox" name="type" value="NLS" checked><span><strong>Năng lực số (NLS)</strong><small>Đúng mã trong KHDH, chữ đỏ.</small></span></label>
+        <label class="option blue"><input type="checkbox" name="type" value="NLAI" checked><span><strong>Năng lực AI (NLAI)</strong><small>Đúng mã đã có, chữ xanh lam.</small></span></label>
+        <label class="option purple"><input type="checkbox" name="type" value="HSHN" checked><span><strong>Học sinh hòa nhập (HSHN)</strong><small>Nhiệm vụ và hỗ trợ theo hoạt động, chữ tím.</small></span></label>
+      </div>
+      <div class="field-grid compact"><label class="field">Mức độ tích hợp<select id="detailLevel"><option value="brief">Ngắn gọn (khuyến nghị)</option><option value="balanced" selected>Vừa phải</option><option value="detailed">Chi tiết</option></select></label><label class="field">Điều kiện thiết bị<select id="devices"><option value="projector">GV có máy chiếu, HS không bắt buộc có thiết bị</option><option value="lab">Phòng máy Tin học</option><option value="personal">HS có thiết bị cá nhân</option><option value="offline">Không sử dụng Internet trong tiết dạy</option></select></label></div>
+      <label class="field hidden" id="hshnField">Hình thức hỗ trợ HSHN<select id="hshnSupport"><option value="general">Hỗ trợ linh hoạt, không suy đoán dạng khuyết tật</option><option value="steps">Chia nhỏ nhiệm vụ, thêm phiếu gợi ý</option><option value="visual">Tăng học liệu trực quan, giảm ghi chép</option><option value="mobility">Điều chỉnh thao tác cho HS hạn chế vận động</option></select></label>
+    </section>
+    <section class="panel action-panel"><div class="action-heading"><div><strong>Phương thức phân tích</strong><small>Gemini tạo đề xuất; chương trình chèn đúng vị trí DOCX.</small></div><span class="pill" id="apiState">Chưa có API Key</span></div><div class="field"><label for="analysisMode">Chọn chế độ</label><select id="analysisMode"><option value="gemini">Gemini AI – phân tích theo hoạt động</option><option value="offline">Không dùng API – tạo gợi ý từ KHDH để duyệt</option></select></div><button id="analyzeBtn" class="primary full" type="button">✦ PHÂN TÍCH VÀ ĐỀ XUẤT</button><p class="helper center" id="statusLine" role="status">Vui lòng chọn giáo án Word.</p></section>
+    <section class="panel hidden" id="reviewPanel"><div class="review-title"><h2><span class="section-mark"></span>Duyệt vị trí chèn</h2><button type="button" id="acceptAll" class="outline small">Chọn tất cả</button></div><p class="helper">Chỉ các mục được chọn mới xuất vào Word. Có thể sửa nội dung hoặc đổi vị trí. Chọn “Đưa xuống cuối” khi chưa tìm được đúng mục.</p><div class="summary" id="reviewStats"></div><div id="proposalList" class="proposal-list"></div>
+      <details class="manual-editor" id="manualEditor"><summary>+ Thêm đề xuất do giáo viên tự nhập (khi KHDH chưa có mã)</summary>
+        <div class="manual-fields"><div class="field-grid compact"><label class="field">Loại nội dung<select id="manualType"><option value="NLS">Năng lực số</option><option value="NLAI">Năng lực AI</option><option value="HSHN">Học sinh hòa nhập</option></select></label><label class="field">Mã chỉ số (nếu có)<input id="manualCode" class="key-input" placeholder="Ví dụ: 9.D1.1"></label></div><label class="field">Nội dung bổ sung<textarea id="manualContent" placeholder="Viết nhiệm vụ ngắn gọn, cụ thể để giáo viên duyệt..."></textarea></label><label class="field">Vị trí dự kiến<select id="manualTarget"></select></label><button type="button" class="outline" id="manualAddBtn">+ Thêm vào danh sách duyệt</button><p class="helper">Đề xuất nhập thủ công do giáo viên chịu trách nhiệm kiểm tra mã và nội dung. Không coi đây là mã tự động trích từ KHDH.</p></div>
+      </details><div class="actions-row"><button type="button" class="outline" id="reAnalyze">↺ Phân tích lại</button><button type="button" class="primary" id="exportBtn">↓ XUẤT WORD GIỮ NGUYÊN BẢN GỐC</button></div></section>
+    <section class="panel hidden" id="resultPanel"><h2><span class="section-mark"></span>Kết quả xuất Word</h2><div id="resultContent"></div></section>
+    <footer>Smart KHBD AI · Dành cho giáo viên Toán – Tin học · <span>Không đưa API Key vào mã nguồn GitHub.</span></footer>
+  </main>
+  <dialog id="configDialog" class="config-dialog"><form method="dialog" class="dialog-head"><h2>⚙ Cấu hình Gemini API</h2><button type="submit" class="icon-button" aria-label="Đóng">✕</button></form><div class="dialog-scroll"><div class="security-note"><strong>Chế độ khóa cá nhân (BYOK)</strong><small>Khóa chỉ tồn tại trong bộ nhớ tab hiện tại và được gửi tới Vercel Function qua HTTPS khi gọi Gemini. Không lưu trong GitHub hoặc cơ sở dữ liệu web. Đóng hoặc tải lại trang sẽ cần nhập lại khóa.</small></div><div class="section-row"><h3>API Key</h3><button class="outline small" id="addKeyBtn" type="button">+ Thêm key</button></div><div id="keyList" class="key-list"></div><div class="section-row"><h3>Điều phối model</h3><button class="outline small" type="button" id="modelsBtn">↻ Lấy danh sách model</button></div><label class="field">Chế độ<select id="routingMode"><option value="smart">Tự động, ưu tiên model chính</option><option value="round">Luân phiên model theo lượt</option><option value="manual">Chỉ sử dụng model chính</option></select></label><div class="field-grid"><label class="field">Model chính<select id="primaryModel"></select></label><label class="field">Model dự phòng<select id="backupModel"></select></label></div><p class="helper">Nhiều API Key thuộc cùng một Google Cloud project vẫn dùng chung quota; luân phiên không làm tăng hạn mức của project.</p><p id="settingsStatus" class="helper" role="status"></p></div><div class="dialog-footer"><button class="primary full" id="saveConfigBtn" type="button">Đóng và sử dụng cấu hình</button></div></dialog>
+  <script src="./vendor/jszip.min.js"></script><script type="module" src="./src/main.js"></script>
+</body></html>

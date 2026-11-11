@@ -1,0 +1,23 @@
+SMART KHBD AI 1.0 - HUONG DAN NHANH (GitHub + Vercel)
+
+1) Giai nen file ZIP, mo thu muc smart-khbd-ai.
+2) Tao repository tren GitHub. Upload TAT CA noi dung trong thu muc nay.
+   Cac tep bat buoc o goc repository: vercel.json, package.json, README.md,
+   thu muc api va thu muc public.
+3) Vao Vercel -> Add New -> Project -> chon repository vua tao.
+4) Framework Preset: Other; Build Command: de trong; Output Directory: public.
+5) Deploy. Web se co dia chi dang https://ten-du-an.vercel.app
+6) Vao web, bam cai dat (hinh banh rang), nhap Gemini API Key tu AI Studio.
+   Bam Kiem tra va Lay danh sach model. Khong can sua code de dien key.
+7) Tai file .docx, chon dung mon/lop/bai/tiet. Danh dau NLS, NLAI, HSHN.
+8) Phan tich -> duyet/doi vi tri -> Xuat Word.
+9) Neu chua co API Key, chon che do Khong dung API de tao goi y tu KHDH.
+
+LUU Y:
+- Khong can tai PPCT moi lan. Da co du lieu Toan/Tin 6-9 nam 2026-2027.
+- KHONG thay the file Word goc, KHONG viet lai bang/cac cong thuc Equation.
+- Neu khong xac dinh noi chen, noi dung duoc ghi o phu luc cuoi giao an.
+- Luon mo file .docx xuat ra bang Microsoft Word de kiem tra truoc khi su dung.
+- Du lieu NLS/NLAI duoc doc tu cac KHDH da gui; mot so ma Toan 9 Bai 6
+  chi la ma tham khao tu giao an mau, khong phai ma tu KHDH to.
+- Read README.md de xem huong dan day du va cac gioi han ky thuat.
