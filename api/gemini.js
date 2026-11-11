@@ -1,3 +1,4 @@
+import {isTextGenerationModel,classifyGeminiError} from '../public/src/model-policy.js';
 // Vercel serverless proxy. API keys are supplied on each request and NOT retained/logged.
 const API='https://generativelanguage.googleapis.com/v1beta';
 const MODEL_RE=/^[a-zA-Z0-9_.-]{3,100}$/;
@@ -14,7 +15,10 @@ export default async function handler(req,res){
   if(op==='generate' && (!MODEL_RE.test(model||'') || !payload || typeof payload!=='object'))
     return send(res,400,{error:'Thiếu model hoặc dữ liệu phân tích.'});
   try {
-    const url=op==='models'?`${API}/models?pageSize=100`:`${API}/models/${model}:generateContent`;
+    const params=new URLSearchParams({pageSize:'100'});
+    const pageToken=typeof payload?.pageToken==='string'?payload.pageToken:'';
+    if(op==='models'&&pageToken)params.set('pageToken',pageToken.slice(0,2048));
+    const url=op==='models'?`${API}/models?${params}`:`${API}/models/${model}:generateContent`;
     const controller=new AbortController();
     const timeout=setTimeout(()=>controller.abort(),48000);
     let response;
@@ -26,10 +30,10 @@ export default async function handler(req,res){
     if(!response.ok){
       const description=String(data?.error?.message||'Google Gemini API trả lỗi.').slice(0,450);
       const retryAfter=response.headers.get('retry-after');
-      return send(res,response.status>=400&&response.status<600?response.status:502,{error:description,status:response.status,retryAfter});
+      return send(res,response.status>=400&&response.status<600?response.status:502,{error:description,status:response.status,retryAfter,code:classifyGeminiError(response.status,description)});
     }
     if(op==='models'){
-      return send(res,200,{models:(data.models||[]).filter(x=>(x.supportedGenerationMethods||[]).includes('generateContent')).map(x=>({name:x.name.replace(/^models\//,''),displayName:x.displayName||x.name,description:(x.description||'').slice(0,160)})),nextPageToken:data.nextPageToken||''});
+      return send(res,200,{models:(data.models||[]).filter(x=>(x.supportedGenerationMethods||[]).includes('generateContent')&&isTextGenerationModel(x.name)).map(x=>({name:x.name.replace(/^models\//,''),displayName:x.displayName||x.name,description:(x.description||'').slice(0,160)})),nextPageToken:data.nextPageToken||''});
     }
     const text=(data.candidates||[]).flatMap(c=>(c.content?.parts||[]).map(x=>x.text||'')).join('');
     return send(res,200,{text,finishReason:data.candidates?.[0]?.finishReason||'',usage:data.usageMetadata?{input:data.usageMetadata.promptTokenCount,output:data.usageMetadata.candidatesTokenCount}:null});

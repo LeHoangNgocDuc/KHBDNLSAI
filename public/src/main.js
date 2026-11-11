@@ -1,8 +1,9 @@
 import {openDocx,reportContext,exportDocx,filenameFor,normalize} from './docx-engine.js';
 import {getTitleMetadata,ranking,sourceList,offlineProposals} from './catalog.js';
+import {PREFERRED_MODELS,DEFAULT_PRIMARY,DEFAULT_BACKUP,sortModelIds,chooseModelOrder,classifyGeminiError} from './model-policy.js';
 
 const $=id=>document.getElementById(id);
-const state={catalog:null,opened:null,metadata:null,lessons:[],lesson:null,lessonConfirmed:false,proposals:[],keys:[],keySerial:0,modelCycle:0,downloadUrl:'',models:['gemini-2.5-flash','gemini-2.5-pro']};
+const state={catalog:null,opened:null,metadata:null,lessons:[],lesson:null,lessonConfirmed:false,proposals:[],keys:[],keySerial:0,modelCycle:0,downloadUrl:'',models:[...PREFERRED_MODELS],modelsLoaded:false,lastAIModel:''};
 const humanType={NLS:'Năng lực số',NLAI:'Năng lực AI',HSHN:'Học sinh hòa nhập'};
 const safeText=(v,n=400)=>String(v??'').slice(0,n);
 const selectedTypes=()=>Array.from(document.querySelectorAll('input[name="type"]:checked')).map(x=>x.value);
@@ -57,58 +58,124 @@ async function apiCall(key,model,payload,op='generate'){
   try {response=await fetch('/api/gemini',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({op,apiKey:key,model,payload}),cache:'no-store'});}
   catch {throw Object.assign(new Error('Không thể kết nối backend Vercel. Hãy chạy trên Vercel hoặc dùng vercel dev.'),{status:0});}
   let json={};try{json=await response.json()}catch{}
-  if(!response.ok)throw Object.assign(new Error(json.error||'API trả lỗi.'),{status:json.status||response.status,retryAfter:json.retryAfter||null});
+  if(!response.ok)throw Object.assign(new Error(json.error||'API trả lỗi.'),{status:json.status||response.status,retryAfter:json.retryAfter||null,code:json.code||classifyGeminiError(response.status,json.error)});
   return json;
 }
 function renderModels(){
-  const base=state.models.length?state.models:['gemini-2.5-flash','gemini-2.5-pro'];
+  const base=sortModelIds(state.models.length?state.models:PREFERRED_MODELS);
   for(const id of ['primaryModel','backupModel']){
     const sel=$(id),prev=sel.value;sel.replaceChildren();
-    base.forEach(model=>sel.add(new Option(model,model)));
-    if(base.includes(prev))sel.value=prev;else sel.value=id==='primaryModel'?base[0]:base[Math.min(1,base.length-1)];
+    base.forEach(model=>sel.add(new Option(model.startsWith('gemini-2.5-')?`${model} (legacy - limited access)`:model,model)));
+    if(base.includes(prev))sel.value=prev;
+    else sel.value=id==='primaryModel'?(base.includes(DEFAULT_PRIMARY)?DEFAULT_PRIMARY:base[0]):(base.includes(DEFAULT_BACKUP)?DEFAULT_BACKUP:base[Math.min(1,base.length-1)]);
   }
 }
 async function fetchModels(){
-  const key=state.keys.find(x=>x.enabled&&x.key.trim());
-  if(!key){$('settingsStatus').textContent='Hãy nhập ít nhất một API Key trước khi lấy danh sách model.';return;}
+  const keys=state.keys.filter(x=>x.enabled&&x.key.trim());
+  if(!keys.length){$('settingsStatus').textContent='Hãy nhập ít nhất một API Key trước khi lấy danh sách model.';return false;}
   $('settingsStatus').textContent='Đang kết nối Gemini để lấy danh sách model...';
-  try {const res=await apiCall(key.key,'',null,'models');if(res.models?.length){state.models=res.models.map(x=>x.name);renderModels();$('settingsStatus').textContent=`Đã tải ${state.models.length} model hỗ trợ generateContent.`;}else $('settingsStatus').textContent='API không trả model phù hợp.';}
-  catch(e){$('settingsStatus').textContent=`Không thể tải model: ${e.message}`;}
+  let found=[],failed=[];
+  for(const k of keys){
+    try{
+      let list=[],pageToken='';
+      for(let page=0;page<4;page++){
+        const res=await apiCall(k.key,'',pageToken?{pageToken}:null,'models');
+        list.push(...(res.models||[]).map(x=>x.name));
+        pageToken=res.nextPageToken||'';
+        if(!pageToken)break;
+      }
+      k.availableModels=sortModelIds(list);
+      found.push(...k.availableModels);
+    }catch(e){k.availableModels=null;failed.push(`${k.label}: ${e.code||e.status||'error'}`);}
+  }
+  const ranked=sortModelIds(found);
+  if(ranked.length){
+    state.models=ranked;state.modelsLoaded=true;renderModels();
+    $('settingsStatus').textContent=`Đã tải ${ranked.length} model sinh văn bản. ${failed.length?failed.length+' key không kiểm tra được.':''}`;
+    return true;
+  }
+  state.modelsLoaded=false;
+  $('settingsStatus').textContent='Không tải được model từ API Key. Hệ thống sẽ thử các model Flash mới; hãy kiểm tra quyền truy cập key.';
+  return false;
 }
-function addKey(){const id=++state.keySerial;state.keys.push({id,label:`API Key ${id}`,key:'',enabled:true,project:'Dự án 1'});renderKeys();}
+function addKey(){state.modelsLoaded=false;const id=++state.keySerial;state.keys.push({id,label:`API Key ${id}`,key:'',enabled:true,project:'Dự án 1'});renderKeys();}
 function renderKeys(){
   const container=$('keyList');container.replaceChildren();
   state.keys.forEach(k=>{
     const box=make('div','key-row');const controls=make('div','key-controls');
-    const chk=document.createElement('input');chk.type='checkbox';chk.checked=k.enabled;chk.title='Sử dụng key';chk.addEventListener('change',()=>{k.enabled=chk.checked;apiBadge();});
+    const chk=document.createElement('input');chk.type='checkbox';chk.checked=k.enabled;chk.title='Sử dụng key';chk.addEventListener('change',()=>{k.enabled=chk.checked;state.modelsLoaded=false;apiBadge();});
     controls.append(chk,make('label','',k.label));
-    const del=make('button','danger-plain','Xóa');del.type='button';del.addEventListener('click',()=>{state.keys=state.keys.filter(x=>x!==k);renderKeys();apiBadge();});controls.append(del);box.append(controls);
-    const inp=make('input','key-input');inp.type='password';inp.autocomplete='off';inp.placeholder='Nhập Gemini API Key (AI Studio)';inp.value=k.key;inp.addEventListener('input',()=>{k.key=inp.value.trim();apiBadge();});box.append(inp);
+    const del=make('button','danger-plain','Xóa');del.type='button';del.addEventListener('click',()=>{state.keys=state.keys.filter(x=>x!==k);state.modelsLoaded=false;renderKeys();apiBadge();});controls.append(del);box.append(controls);
+    const inp=make('input','key-input');inp.type='password';inp.autocomplete='off';inp.placeholder='Nhập Gemini API Key (AI Studio)';inp.value=k.key;inp.addEventListener('input',()=>{k.key=inp.value.trim();k.availableModels=null;state.modelsLoaded=false;apiBadge();});box.append(inp);
     const act=make('div','key-actions');const project=make('input','key-input');project.placeholder='Tên nhóm project/quota';project.title='Các key cùng project dùng chung hạn mức';project.value=k.project;project.style.maxWidth='180px';project.addEventListener('input',()=>k.project=project.value.trim()||'Dự án 1');act.append(project);
-    const test=make('button','outline small key-test','Kiểm tra');test.type='button';const status=make('span','key-state','Chưa kiểm tra');test.addEventListener('click',async()=>{if(!k.key){status.textContent='Chưa nhập key';return;}status.textContent='Đang kiểm tra...';try{const r=await apiCall(k.key,'',null,'models');status.textContent=`✓ Hoạt động (${r.models?.length||0} model)`;}catch(e){status.textContent=`✗ ${e.message.slice(0,72)}`;}});act.append(test,status);box.append(act);container.append(box);
+    const test=make('button','outline small key-test','Kiểm tra');test.type='button';
+    const status=make('span','key-state','Chưa kiểm tra');
+    test.addEventListener('click',async()=>{
+      if(!k.key){status.textContent='Chưa nhập key';return;}
+      test.disabled=true;status.textContent='Đang kiểm tra model thực tế...';
+      try{
+        const r=await apiCall(k.key,'',null,'models');
+        const names=sortModelIds((r.models||[]).map(x=>x.name));
+        const candidates=names.filter(x=>PREFERRED_MODELS.includes(x)).slice(0,3);
+        if(!candidates.length)throw new Error('Không có model Flash mới cho key này.');
+        let lastError;
+        for(const model of candidates){
+          try{
+            const probe={contents:[{role:'user',parts:[{text:'Reply with the exact JSON object {"ok":true}'}]}],generationConfig:{responseMimeType:'application/json',maxOutputTokens:256}};
+            const result=await apiCall(k.key,model,probe);
+            if(!result.text?.trim())throw new Error('Model không trả kết quả.');
+            status.textContent=`✓ Đã gọi thành công ${model}`;
+            if(state.models.includes(model))$('primaryModel').value=model;
+            k.availableModels=names;return;
+          }catch(e){lastError=e;}
+        }
+        throw lastError||new Error('Không gọi được model.');
+      }catch(e){status.textContent=`✗ ${e.message.slice(0,100)}`;}
+      finally{test.disabled=false;}
+    });act.append(test,status);box.append(act);container.append(box);
   });
 }
 function modelOrder(){
-  const primary=$('primaryModel').value,backup=$('backupModel').value,mode=$('routingMode').value;
-  if(mode==='manual')return [primary];
-  if(mode==='round'&&primary!==backup){state.modelCycle++;return state.modelCycle%2?[backup,primary]:[primary,backup];}
-  return [...new Set([primary,backup])];
+  const mode=$('routingMode').value;
+  if(mode==='round')state.modelCycle++;
+  return chooseModelOrder({primary:$('primaryModel').value,backup:$('backupModel').value,mode,available:state.models,cycle:state.modelCycle});
 }
 async function callWithFallback(payload){
-  const keys=state.keys.filter(x=>x.enabled&&x.key.trim());if(!keys.length)throw new Error('Chưa có API Key. Mở Cấu hình API để nhập key hoặc chọn chế độ không dùng API.');
-  const models=modelOrder();let errors=[];const blockedProjects=new Set();const initialOffset=state.modelCycle % keys.length;
+  const keys=state.keys.filter(x=>x.enabled&&x.key.trim());
+  if(!keys.length)throw new Error('Chưa có API Key. Mở Cấu hình API để nhập key hoặc chọn chế độ không dùng API.');
+  if(!state.modelsLoaded)await fetchModels();
+  const models=modelOrder();
+  if(!models.length)throw new Error('Không có model sinh văn bản phù hợp. Mở Cài đặt và chọn model Flash.');
+  const errors=[],blockedProjects=new Set(),badKeys=new Set();
+  const initialOffset=state.modelCycle % keys.length;
   for(const model of models){
     for(let i=0;i<keys.length;i++){
       const k=keys[(i+initialOffset)%keys.length];
-      if(blockedProjects.has(k.project||'Dự án 1'))continue;
-      try {setStatus(`Gemini đang phân tích bằng ${model} (${k.label})...`);const answer=await apiCall(k.key,model,payload);return {...answer,model,keyLabel:k.label};}
-      catch(e){errors.push(`${k.label}/${model}: ${e.message.slice(0,125)}`);
-        if(e.status===429){blockedProjects.add(k.project||'Dự án 1');} // Do not evade a project-wide quota with another key from that project.
-        if(e.status===400 && /responseMimeType|generationConfig/i.test(e.message))break;
+      if(blockedProjects.has(k.project||'Dự án 1')||badKeys.has(k.id))continue;
+      if(Array.isArray(k.availableModels)&&!k.availableModels.includes(model))continue;
+      try{
+        setStatus(`Gemini đang phân tích bằng ${model} (${k.label})...`);
+        const answer=await apiCall(k.key,model,payload);
+        if(!String(answer.text||'').trim())throw Object.assign(new Error('Model không trả nội dung.'),{code:'EMPTY_RESPONSE',status:502});
+        state.lastAIModel=model;
+        if($('routingMode').value!=='manual'&&state.models.includes(model))$('primaryModel').value=model;
+        return {...answer,model,keyLabel:k.label};
+      }catch(e){
+        const code=e.code||classifyGeminiError(e.status,e.message);
+        errors.push(`${k.label}/${model}: ${code}`);
+        if(code==='QUOTA_EXCEEDED')blockedProjects.add(k.project||'Dự án 1');
+        if(code==='INVALID_KEY')badKeys.add(k.id);
+        if(code==='REQUEST_UNSUPPORTED')throw new Error('Gemini không hỗ trợ cấu trúc JSON yêu cầu. Chọn model Flash mới hơn.');
       }
     }
   }
-  throw new Error(errors.join(' · ')||'Không có tổ hợp API Key/model nào khả dụng.');
+  const failures=[...new Set(errors.map(x=>x.split(': ').pop()))];
+  const hint=failures.every(x=>x==='MODEL_UNAVAILABLE')
+    ?'Model đã chọn không khả dụng với API Key. Hãy chọn Gemini 3.8 Flash hoặc bấm Lấy danh sách model trong Cài đặt.'
+    :failures.includes('QUOTA_EXCEEDED')
+      ?'API Key hoặc project đã hết hạn mức. Vui lòng kiểm tra quota trong Google AI Studio.'
+      :'Không có tổ hợp API Key/model nào thành công. Vào Cài đặt → Lấy danh sách model, hoặc sử dụng chế độ không API.';
+  throw new Error(`${hint} (${errors.slice(0,4).join(' | ')||'không có model'})`);
 }
 function buildPrompt(lesson,opened,types){
   const context=reportContext(opened);
@@ -120,7 +187,7 @@ function buildPrompt(lesson,opened,types){
 Chỉ đề xuất ĐOẠN VĂN BỔ SUNG, TUYỆT ĐỐI KHÔNG sửa, xoá hoặc viết lại giáo án gốc. Không tự chế mã NLS/NLAI. Mã NLS/NLAI phải chọn đúng từ competencies. Với HSHN không bịa đặc điểm bệnh/tình trạng học sinh. Nội dung ngắn gọn, khả thi với thiết bị được nêu, gắn sát hoạt động đã có. Không thêm nội dung trùng với existing. Vì các công thức Equation gốc không được đưa đầy đủ vào ngữ cảnh AI, KHÔNG tự bịa công thức, số liệu, phương trình cụ thể hoặc ký hiệu LaTeX để chèn; chỉ mô tả cách tổ chức hoạt động.
 Trả về DUY NHẤT JSON: {"proposals":[{"type":"NLS|NLAI|HSHN","code":"mã từ competencies hoặc rỗng nếu HSHN","anchorId":"một ID có thật trong document.anchors hoặc chuỗi rỗng nếu không chắc chắn","content":"một đoạn tiếng Việt ngắn để bổ sung","reason":"nếu không xác định anchor thì giải thích vì sao"}]}.
 YÊU CẦU: (1) Mỗi mã được dùng tối đa một mục tiêu và một hoạt động, không lặp. (2) Mục tiêu NLS/NLAI dùng goals-competency, HSHN dùng goals-inclusion. (3) Hoạt động dùng anchor kind=activity đúng chủ đề/bước. (4) Nếu không có anchor phù hợp, dùng anchorId="" để hệ thống đưa xuống phụ lục cuối. (5) Tối đa 10 đề xuất. (6) Chỉ dùng loại đã chọn và chỉ mã có trong competencies. (7) HSHN hỗ trợ việc học cùng lớp; không hạ chuẩn máy móc.`;
-  return {systemInstruction:{parts:[{text:system}]},contents:[{role:'user',parts:[{text:JSON.stringify(input)}]}],generationConfig:{responseMimeType:'application/json',temperature:0.25,maxOutputTokens:2700}};
+  return {systemInstruction:{parts:[{text:system}]},contents:[{role:'user',parts:[{text:JSON.stringify(input)}]}],generationConfig:{responseMimeType:'application/json',temperature:0.25,maxOutputTokens:6000}};
 }
 function validateAIProposals(raw,lesson,opened,types){
   const t=raw.trim().replace(/^```(?:json)?\s*/,'').replace(/\s*```$/,'');
@@ -143,7 +210,7 @@ async function analyze(){
   const types=selectedTypes();if(!types.length){setStatus('Hãy chọn ít nhất một loại năng lực.',true);return;}
   if(!state.lesson){setStatus('Hãy chọn bài học tương ứng trong KHDH.',true);return;}
   if(!state.lessonConfirmed){setStatus('Hãy kiểm tra và xác nhận tên bài/tiết PPCT vì hệ thống chưa nhận diện chắc chắn.',true);return;}
-  busy(true,'Đang chuẩn bị dữ liệu từ giáo án gốc...');
+  state.lastAIModel='';busy(true,'Đang chuẩn bị dữ liệu từ giáo án gốc...');
   try {
     if($('analysisMode').value==='offline'){
       state.proposals=offlineProposals(state.lesson,state.opened,types);
@@ -153,7 +220,7 @@ async function analyze(){
       if(!state.proposals.length)throw new Error('Không nhận được nội dung phù hợp mã KHDH. Có thể dùng chế độ không API để tạo đề xuất từ dữ liệu nguồn.');
     }
     renderReview();setStep(2);$('reviewPanel').classList.remove('hidden');$('resultPanel').classList.add('hidden');$('reviewPanel').scrollIntoView({behavior:'smooth',block:'start'});
-    setStatus(`Đã tạo ${state.proposals.length} đề xuất. Giáo viên cần duyệt trước khi xuất Word.`);
+    setStatus(`Đã tạo ${state.proposals.length} đề xuất${state.lastAIModel?' bằng '+state.lastAIModel:''}. Giáo viên cần duyệt trước khi xuất Word.`);
   } catch(e){setStatus('Không phân tích được: '+e.message,true);toast('Chưa tạo được đề xuất. Tài liệu Word gốc vẫn được giữ nguyên.');}
   finally {busy(false);}
 }

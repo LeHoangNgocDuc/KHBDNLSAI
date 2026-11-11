@@ -1,0 +1,34 @@
+Smart KHBD AI 1.0.1 - Gemini model availability fix
+
+MAIN FIX
+- Default model: gemini-3.8-flash
+- Default fallback: gemini-3.6-flash
+- Automatically discover models available for each enabled API key.
+- Filter unsupported audio/image/live/embedding models.
+- Try up to five suitable text models when automatic routing is enabled.
+- Report model unavailability separately from project quota exhaustion.
+- API Key Test performs a real small JSON generation (may consume a few tokens).
+- Pagination supported when Google returns multiple model pages.
+- Better browser cache revalidation after Vercel deployments.
+
+UNCHANGED
+- DOCX engine and all existing Word preservation logic.
+- Existing Toan/Tin 6-9 KHDH catalog.
+- NLS/NLAI/HSHN workflow and appendix-on-unplaced behavior.
+
+DEPLOY TO EXISTING VERCEL URL
+1. Extract the full ZIP package.
+2. Replace files in the root of your existing GitHub repository with files
+   from the extracted smart-khbd-ai directory. Keep the directory structure.
+3. Commit your changes. Vercel normally starts a new deployment automatically.
+4. Reload the existing web page (Ctrl+Shift+R on Windows).
+5. Confirm the footer says Smart KHBD AI 1.0.1.
+6. Open Settings, re-enter API keys and choose automatic routing.
+7. Click Test for a key, or start analysis to auto-discover Gemini models.
+
+DO NOT upload the ZIP file itself into the GitHub repository as a substitute
+for extracting its source files.
+
+VALIDATION
+- 13/13 local automated tests passed.
+- No real personal Gemini API key was provided for live end-to-end API testing.
