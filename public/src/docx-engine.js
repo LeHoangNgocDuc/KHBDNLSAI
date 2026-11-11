@@ -28,17 +28,24 @@ function newEl(doc, kind, attributes={}) {
 }
 function getDocumentXml(zip) { return zip.file('word/document.xml')?.async('string'); }
 function sectionName(text) {
-  if (/^I\s*[.\-:]\s*M[ỤU]C\s*TI[ÊE]U/i.test(text)) return 'I';
-  if (/^II\s*[.\-:]\s*THI[ẾE]T\s*B[ỊI]/i.test(text)) return 'II';
-  if (/^III\s*[.\-:]\s*TI[ẾE]N\s*TR[ÌI]NH/i.test(text)) return 'III';
+  const s=normalize(text);
+  if (/^i muc tieu\b/.test(s)) return 'I';
+  if (/^ii thiet bi\b/.test(s)) return 'II';
+  if (/^iii tien trinh\b/.test(s)) return 'III';
   return null;
 }
 function activityName(text) {
-  const s = text.trim();
-  if (/^(?:[A-D]\s*[.]\s*HOẠT ĐỘNG|HOẠT ĐỘNG\s*\d+\s*[:.])/i.test(s)) return s.slice(0,120);
-  // Paragraph headings may be uppercase and contain no spaces after a letter.
-  if (/^[A-D]\s*\.\s*HOAT DONG/i.test(normalize(s).toUpperCase())) return s.slice(0,120);
-  return null;
+  const s=text.trim();
+  // Tin học: 1. Hoạt động 1, 2.1 Hoạt động 1, 2.1.2. Hoạt động 2.
+  // Toán: A. HOẠT ĐỘNG, Hoạt động 1, Hoạt động 2.
+  return /^(?:(?:[A-D]|\d+(?:\.\d+)*)\s*\.?\s*)?hoạt\s+động(?:\s*\d+)?\b/i.test(s) ? s.slice(0,140) : null;
+}
+function isUnitTitle(text){
+  const s=text.trim();
+  if(s.length>190 || !/^(?:TIẾT[^\n]{0,48}?BÀI|BÀI)\s*\d+/i.test(s))return false;
+  const letters=s.match(/[a-zA-ZÀ-Ỹà-ỹĐđ]/g)||[];
+  const upper=letters.filter(c=>c===c.toUpperCase()&&c!==c.toLowerCase()).length;
+  return letters.length>0 && upper/letters.length>.63;
 }
 function getCellMeta(p, tables) {
   const tc=parentOfTag(p,'tc'); if(!tc)return {cell:'',column:-1,table:-1,role:''};
@@ -55,68 +62,78 @@ function getCellMeta(p, tables) {
 function snapshotFrom(doc) {
   const body=first(doc,'body');if(!body)throw new Error('Không tìm thấy nội dung chính của giáo án.');
   const tables=elems(body,'tbl');
-  let section='', activity='';
+  let section='',activity='',unitId='u0',unitIndex=0;
+  const units=[];
   const paragraphs=elems(body,'p');
-  const blocks = paragraphs.map((p,i)=>{
+  const blocks=paragraphs.map((p,i)=>{
     const text=pText(p).replace(/\s+/g,' ').trim();
     const insideTable=!!parentOfTag(p,'tc');
     if(!insideTable){
-      const s=sectionName(text);if(s) {section=s; if(s!=='III')activity='';}
-      if(section==='III') {const a=activityName(text); if(a)activity=a;}
+      if(isUnitTitle(text)){
+        unitId=`u${++unitIndex}`;units.push({id:unitId,title:text,index:unitIndex});
+        section='';activity='';
+      }
+      const sec=sectionName(text);if(sec){section=sec;if(sec!=='III')activity='';}
+      if(section==='III'){const a=activityName(text);if(a)activity=a;}
     }
     const found=/^Bước\s*([1-4])\s*[:.\-]/i.exec(text);
-    return {id:'p'+i,element:p,text,section,activity,step:found ? `Bước ${found[1]}`:'', ...getCellMeta(p,tables)};
+    return {id:'p'+i,element:p,text,section,activity,unitId,step:found?`Bước ${found[1]}`:'',...getCellMeta(p,tables)};
   });
+  if(!units.length){units.push({id:'u0',title:'Giáo án hiện tại',index:0});}
   const anchors=[];
-  const objectives=blocks.filter(b=>b.section==='I' && b.table===-1);
-  const firstPham=objectives.findIndex(b=>/^3\s*[.]\s*phẩm chất/i.test(b.text));
-  const idx2=objectives.findIndex(b=>/^2\s*[.]\s*năng lực/i.test(b.text));
-  if(idx2>=0){
-    const end=firstPham>idx2 ? firstPham-1 : objectives.length-1;
-    const b=objectives[end];
-    if(b)anchors.push({id:'goals-competency',kind:'goal',blockId:b.id,section:'I',activity:'Mục tiêu → Năng lực',step:'',column:'',preview:b.text.slice(0,120)});
-  }
-  if(firstPham>=0){
-    const b=objectives[objectives.length-1];
-    if(b)anchors.push({id:'goals-inclusion',kind:'goal',blockId:b.id,section:'I',activity:'Mục tiêu → Phẩm chất',step:'',column:'',preview:b.text.slice(0,120)});
-  }
-  // Add an explicit anchor at the end of Bước 1 only when another step follows.
-  // Homework is a standalone section; never infer it from a table cell.
-  const home=blocks.find(b=>b.table<0 && /^(?:[*•-]\s*)?HƯỚNG DẪN VỀ NHÀ/i.test(b.text));
-  if(home)anchors.push({id:'homework',kind:'homework',blockId:home.id,section:'III',activity:'Hướng dẫn về nhà',step:'',column:'',preview:home.text});
-  let lastActivity='';
-  blocks.forEach(b=>{
-    if(b.section!=='III'||!b.step) return;
-    if(b.table>=0 && b.role!=='teacher') return; // Never guess the instructional column of a table.
-    if(!b.activity) return;
-    if(b.step==='Bước 1'||b.step==='Bước 2'){
-      if(anchors.some(a=>a.kind==='activity' && a.blockId===b.id))return;
-      // Activity headers and step markers are anchors; material is added directly after the step.
-      anchors.push({id:'step-'+b.id,kind:'activity',blockId:b.id,section:'III',activity:b.activity,step:b.step,column:b.cell,preview:b.text.slice(0,150)});
+  for(const [ui,unit] of units.entries()){
+    const objectives=blocks.filter(b=>b.unitId===unit.id&&b.section==='I'&&b.table===-1);
+    const pham=objectives.findIndex(b=>/^3\s*\.\s*(?:về\s*)?phẩm chất/i.test(b.text));
+    const comp=objectives.findIndex(b=>/^2\s*\.\s*(?:về\s*)?năng lực/i.test(b.text));
+    const suffix=ui===0?'':`-${unit.id}`;
+    if(comp>=0){
+      let end=pham>comp?pham-1:objectives.length-1;
+      if(end>=comp){const b=objectives[end];anchors.push({id:`goals-competency${suffix}`,kind:'goal',blockId:b.id,unitId:unit.id,section:'I',activity:'Mục tiêu → Năng lực',step:'',column:'',preview:b.text.slice(0,120)});}
     }
-    lastActivity=b.activity;
-  });
-  for(const b of blocks.filter(b=>b.section==='III' && b.step==='Bước 1' && (b.table<0||b.role==='teacher'))){
-    const group=blocks.filter(x=>x.section==='III'&&x.activity===b.activity&&x.table===b.table&&x.column===b.column);
-    const pos=group.indexOf(b),nextStep=group.findIndex((x,j)=>j>pos && !!x.step);
-    if(nextStep<=pos+1)continue;
-    const tail=group[nextStep-1];
-    if(tail&&tail!==b){anchors.push({id:'step1-tail-'+tail.id,kind:'activity-end',blockId:tail.id,section:'III',activity:b.activity,step:'Cuối Bước 1',column:b.cell,preview:tail.text.slice(0,150)});}
+    if(pham>=0){
+      const tail=objectives.slice(pham+1);
+      const hsk=tail.findIndex(b=>/mục tiêu dành cho học sinh khuyết tật|điều chỉnh mục tiêu giáo dục hòa nhập/i.test(normalize(b.text)));
+      const regular= hsk>=0?tail.slice(0,hsk):tail;
+      const b=regular.at(-1)||objectives[pham];
+      anchors.push({id:`goals-inclusion${suffix}`,kind:'goal',blockId:b.id,unitId:unit.id,section:'I',activity:'Mục tiêu → Sau Phẩm chất',step:'',column:'',preview:b.text.slice(0,120)});
+    }
+    const home=blocks.find(b=>b.unitId===unit.id&&b.table<0&&/^(?:[*•-]\s*)?(?:HƯỚNG DẪN VỀ NHÀ|HƯỚNG DẪN TỰ HỌC Ở NHÀ)/i.test(b.text));
+    if(home)anchors.push({id:`homework-${home.id}`,kind:'homework',blockId:home.id,unitId:unit.id,section:'III',activity:'Hướng dẫn về nhà',step:'',column:'',preview:home.text});
   }
-  return {body,tables,blocks,anchors};
+  for(const b of blocks){
+    if(b.section!=='III'||!b.step||!b.activity)continue;
+    if(b.table>=0&&b.role!=='teacher')continue;
+    if(b.step==='Bước 1'||b.step==='Bước 2')
+      anchors.push({id:'step-'+b.id,kind:'activity',blockId:b.id,unitId:b.unitId,section:'III',activity:b.activity,step:b.step,column:b.cell,preview:b.text.slice(0,150)});
+  }
+  // Keep step 1 summaries inside the *same unit, activity, table and teacher column*.
+  for(const b of blocks.filter(b=>b.section==='III'&&b.step==='Bước 1'&&(b.table<0||b.role==='teacher'))){
+    const group=blocks.filter(x=>x.section==='III'&&x.unitId===b.unitId&&x.activity===b.activity&&x.table===b.table&&x.column===b.column);
+    const pos=group.indexOf(b),next=group.findIndex((x,j)=>j>pos&&!!x.step);
+    if(next<=pos+1)continue;
+    const tail=group[next-1];
+    if(tail&&tail!==b)anchors.push({id:'step1-tail-'+tail.id,kind:'activity-end',blockId:tail.id,unitId:b.unitId,section:'III',activity:b.activity,step:'Cuối Bước 1',column:b.cell,preview:tail.text.slice(0,150)});
+  }
+  return {body,tables,blocks,anchors,units};
 }
 function makeParagraph(doc,anchorP,text,color,heading=false){
   const p=newEl(doc,'p');
   const ppr=kids(anchorP,'pPr')[0];
   if(ppr&&!heading){const clone=ppr.cloneNode(true);for(const num of kids(clone,'numPr'))clone.removeChild(num);p.appendChild(clone);}
   if(heading){const pPr=newEl(doc,'pPr');pPr.appendChild(newEl(doc,'spacing',{before:'120',after:'80'}));p.appendChild(pPr);}
-  addRichRuns(doc,p,text,color);
+  const origSz=elems(anchorP,'sz')[0]?.getAttributeNS(W,'val');
+  const pointSize=(origSz && /^\d{2,3}$/.test(origSz))?origSz:'26';
+  addRichRuns(doc,p,text,color,pointSize);
+  const goalHeader=/^(?:\*\s*MỤC TIÊU DÀNH CHO|\*\s*Điều chỉnh mục tiêu|[123]\.\s*(?:Kiến thức|Năng lực|Phẩm chất)|Năng lực chung:|Năng lực riêng)/i.test(text);
+  if(goalHeader)for(const run of kids(p,'r')){
+    const props=kids(run,'rPr')[0];if(props)props.appendChild(newEl(doc,'b'));
+  }
   if(heading){const r=kids(p,'r')[0];const rPr=r?kids(r,'rPr')[0]:null;if(rPr)rPr.appendChild(newEl(doc,'b'));}
   return p;
 }
 function proposalLines(p){
   const c=p.code ? ` [${p.code}]`:'';
-  if(p.type==='HSHN' && p.anchorId==='goals-inclusion')return p.content.trim().split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+  if(p.type==='HSHN' && p.slot==='goal')return p.content.trim().split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
   const label=p.type==='NLS'?'NLS':p.type==='NLAI'?'Năng lực AI':'GDHN';
   const prefix=p.slot==='step1-summary'?'[Tích hợp NLS]':p.slot==='homework'?'Nhiệm vụ NLS':p.type==='HSHN'&&p.slot==='activity'?'[GDHN] Biện pháp hỗ trợ HSKT':`[Tích hợp ${label}]${c}`;
   const raw=p.content.trim().split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
@@ -134,14 +151,23 @@ function formatProposal(p){
 function isDuplicate(proposal, anchor, originalSnapshot) {
   const block=originalSnapshot.blocks.find(b=>b.id===anchor.blockId);
   if(!block)return false;
-  const relevant=originalSnapshot.blocks.filter(b=>anchor.kind==='goal' ? b.section==='I' : b.section==='III'&&b.activity===block.activity);
+  const relevant=originalSnapshot.blocks.filter(b=>b.unitId===block.unitId && (anchor.kind==='goal' ? b.section==='I' : b.section==='III'&&b.activity===block.activity));
   if(proposal.code){
     const wanted=digitsOnly(proposal.code);
     return relevant.some(b=>digitsOnly(b.text).includes(wanted) && (b.text.includes('NLS')||b.text.includes('AI')||b.text.toUpperCase().includes(proposal.code.toUpperCase())));
   }
   if(proposal.type==='HSHN'){
-    const marker=anchor.kind==='goal' ? /gi[aá]o d[uụ]c h[oò]a nh[aậ]p|GDHN\.KT|\[HSHN\]/i : /\[T[ií]ch h[oợ]p GDHN\]|\[T[ií]ch h[oợ]p HSHN\]|\[HSHN\]/i;
-    if(relevant.some(b=>marker.test(b.text)))return true;
+    if(anchor.kind==='goal'){
+      if(relevant.some(b=>/mục tiêu dành cho học sinh khuyết tật|giáo dục hòa nhập|GDHN\.KT/i.test(b.text)))return true;
+    }else{
+      // A HSHN support already placed in Bước 1 must not prevent a new
+      // accommodation at the beginning of Bước 2 of the same activity.
+      const same=originalSnapshot.blocks.filter(b=>b.unitId===block.unitId && b.activity===block.activity && b.table===block.table && b.column===block.column);
+      const start=same.findIndex(b=>b.id===block.id);
+      const end=same.findIndex((b,i)=>i>start && !!b.step);
+      const region=start>=0?same.slice(start,end>=0?end:undefined):[];
+      if(region.some(b=>/\[GDHN\]|\[T[ií]ch h[oợ]p GDHN\]|\[T[ií]ch h[oợ]p HSHN\]|\[HSHN\]/i.test(b.text)))return true;
+    }
   }
   const needle=normalize(proposal.content).slice(0,70);
   return needle.length>25 && relevant.some(b=>normalize(b.text).includes(needle));
@@ -154,12 +180,13 @@ export async function openDocx(input) {
   const doc=xmlParser(oldXml),snapshot=snapshotFrom(doc);
   const info={name:input?.name||'Giao_an.docx',size:input?.size||0,
     blocks:snapshot.blocks.map(({element,...rest})=>rest),
-    anchors:snapshot.anchors,
+    anchors:snapshot.anchors,units:snapshot.units,
     counts:{tables:snapshot.tables.length,paragraphs:snapshot.blocks.length,equations:count(doc,'oMath')+count(doc,'oMathPara'),pictures:count(doc,'drawing'),embeddedObjects:count(doc,'object')}};
   return {zip,oldXml,doc,snapshot,info};
 }
-export function reportContext(opened){
-  const {blocks,anchors}=opened.snapshot;
+export function reportContext(opened,{unitId}={}){
+  let {blocks,anchors}=opened.snapshot;
+  if(unitId){blocks=blocks.filter(b=>b.unitId===unitId);anchors=anchors.filter(a=>a.unitId===unitId);}
   const headlines=blocks.filter(b=>b.table===-1 && (b.section==='I'||b.section==='III'))
     .filter(b=>/Bài\s*\d+|Hoạt động|Bước|Mục tiêu|Năng lực|Phẩm chất/i.test(b.text))
     .slice(0,65).map(b=>b.text.slice(0,180));
@@ -197,7 +224,7 @@ function convertExistingDocxLatex(doc){
   return {converted,failed};
 }
 
-export async function exportDocx(opened,proposals,{allowUnplaced=true,convertExistingLatex=false}={}) {
+export async function exportDocx(opened,proposals,{allowUnplaced=true,convertExistingLatex=false,unitId=null}={}) {
   const doc=xmlParser(opened.oldXml),before=snapshotFrom(doc);
   const serial=new XMLSerializer();
   const existingOriginal=before.blocks.map(b=>({node:b.element,xml:serial.serializeToString(b.element),text:b.text}));
@@ -214,7 +241,10 @@ export async function exportDocx(opened,proposals,{allowUnplaced=true,convertExi
     if(raw.accepted===false)continue;
     const p={type:String(raw.type||''),code:String(raw.code||'').trim(),content:String(raw.content||'').replace(/<br\s*\/?\s*>/gi,'\n').trim().slice(0,4000),anchorId:String(raw.anchorId||'').trim(),reason:String(raw.reason||'').trim(),slot:String(raw.slot||'')};
     if(!TYPES.has(p.type)||!p.content) continue;
-    const anchor=anchors.get(p.anchorId), b=anchor&&blocks.get(anchor.blockId);
+    const rawAnchor=anchors.get(p.anchorId);
+    const anchor=(unitId && rawAnchor?.unitId!==unitId)?null:rawAnchor;
+    if(rawAnchor&&!anchor)p.reason='Vị trí đề xuất thuộc bài khác với bài đang chọn trong file Word.';
+    const b=anchor&&blocks.get(anchor.blockId);
     const sig=[p.type,digitsOnly(p.code),normalize(p.content),p.slot].join('|');
     if(alreadyInserted.has(sig)) {allRecords.push({...p,status:'ALREADY_EXISTS',reason:'Đề xuất trùng trong lượt xử lý.'});continue;}
     if(!b||!anchor){
@@ -225,7 +255,7 @@ export async function exportDocx(opened,proposals,{allowUnplaced=true,convertExi
     if(isDuplicate(p,anchor,before)) {allRecords.push({...p,status:'ALREADY_EXISTS',reason:'Mã hoặc nội dung tương đương đã có tại mục/hoạt động tương ứng.'});continue;}
     // Re-validate user-adjusted positions at export time, not just in the AI response.
     const slot=p.slot||'activity';
-    const matchesSlot=slot==='goal'?anchor.kind==='goal'&&anchor.id===(p.type==='HSHN'?'goals-inclusion':'goals-competency'):
+    const matchesSlot=slot==='goal'?anchor.kind==='goal'&&anchor.id.startsWith(p.type==='HSHN'?'goals-inclusion':'goals-competency'):
       slot==='activity'?anchor.kind==='activity'&&anchor.step===(p.type==='HSHN'?'Bước 2':'Bước 1'):
       slot==='step1-summary'?p.type==='NLS'&&anchor.kind==='activity-end':
       slot==='homework'?p.type==='NLS'&&anchor.kind==='homework':false;

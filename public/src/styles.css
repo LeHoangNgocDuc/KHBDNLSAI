@@ -18,3 +18,19 @@
 .math-preference input{width:17px;height:17px;flex-shrink:0;margin-top:3px}
 .math-preference code{background:#f4f5fb;border-radius:4px;padding:0 4px}
 @media(max-width:620px){.disability-grid{grid-template-columns:1fr}.inclusion-options{padding:14px}.inclusion-radios{gap:12px;flex-direction:column}}
+
+/* v1.2 – advanced option cards following the supplied reference layout. */
+.option.green{background:#edfcf5;border-color:#b9efd2;color:#126642}
+.option.indigo{background:#edf0fe;border-color:#cbd5fa;color:#2e3b94}
+.option.pink{background:#fff1f2;border-color:#fecfd8;color:#a32145}
+.option.placeholder{opacity:.71;cursor:not-allowed}
+.option-symbol{display:grid;place-items:center;min-width:20px;font-size:22px}
+.option input:focus-visible{outline:2px solid currentColor;outline-offset:3px}
+.unit-picker{margin:13px 0;padding:13px 15px;background:#fffbea;border:1px solid #eadbaa;border-radius:12px}
+.unit-picker .field{margin:0}
+.unit-picker .helper{margin:7px 0 0}
+.inclusion-options{background:#fdfaff;border-color:#ddc5f4;margin:-5px 10px 12px;padding:13px 18px}
+.inclusion-options h3{color:#7b2499;font-weight:700}
+.disability-grid{grid-template-columns:1fr;gap:8px}
+.inclusion-radios{gap:14px}
+@media(max-width:620px){.inclusion-options{margin: -4px 4px 12px;padding:12px}}

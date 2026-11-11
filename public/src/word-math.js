@@ -87,12 +87,12 @@ export function richFragments(content){const value=String(content||'').replace(/
   if(pieces.filter(x=>x.kind==='text').some(x=>/(?<!\\)\$/.test(x.value)))throw Error('Công thức thiếu dấu $ đóng hoặc chứa xuống dòng.');
   return pieces;
 }
-export function addRichRuns(doc,p,text,color='2563EB'){
+export function addRichRuns(doc,p,text,color='2563EB',fontSize='26'){
   const pieces=richFragments(text);let count=0;
   for(const piece of pieces){if(piece.kind==='math'){p.appendChild(latexToOmml(doc,piece.value,color));count++;continue;}
     if(!piece.value)continue;const r=doc.createElementNS(WORD_NS,'w:r');const rpr=doc.createElementNS(WORD_NS,'w:rPr');
     const font=doc.createElementNS(WORD_NS,'w:rFonts');for(const key of ['ascii','hAnsi','eastAsia','cs'])font.setAttributeNS(WORD_NS,'w:'+key,'Times New Roman');
-    const col=doc.createElementNS(WORD_NS,'w:color');col.setAttributeNS(WORD_NS,'w:val',color);rpr.appendChild(font);rpr.appendChild(col);r.appendChild(rpr);
+    const col=doc.createElementNS(WORD_NS,'w:color');col.setAttributeNS(WORD_NS,'w:val',color);rpr.appendChild(font);rpr.appendChild(col);const sz=doc.createElementNS(WORD_NS,'w:sz');sz.setAttributeNS(WORD_NS,'w:val',fontSize);rpr.appendChild(sz);r.appendChild(rpr);
     const t=doc.createElementNS(WORD_NS,'w:t');t.setAttributeNS(XML_NS,'xml:space','preserve');t.appendChild(doc.createTextNode(piece.value));r.appendChild(t);p.appendChild(r);
   }return count;
 }

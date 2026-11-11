@@ -1,4 +1,4 @@
-import {inclusiveObjectives,inclusiveActivity} from './inclusion-policy.js';
+import {safeInclusiveObjectives,inclusiveActivity} from './inclusion-policy.js';
 import {normalize} from './docx-engine.js';
 const significant = s => normalize(s).split(' ').filter(x=>x.length>=3 && !['bai','chuong','tiet','tap','hoc','toan','tin','lop'].includes(x));
 export const lessonKey = x => `${x.subject}|${x.grade}|${x.track}|${x.name}|${x.periods.join(',')}`;
@@ -20,10 +20,10 @@ export function ranking(catalog,meta,subject,grade){
   const titleWords=significant(meta.title);
   return selected.map(x=>{
     const name=normalize(x.name);
-    const current=x.name.match(/Bài\s*(\d+[a-z]?)/i)?.[1]?.toLowerCase()||'';
+    const current=x.name.match(/Bài\s*(\d+[a-z]?)/i)?.[1]?.toLowerCase().replace(/^0+(?=\d)/,'')||'';
     const nameWords=significant(x.name);
     let score=titleWords.length?nameWords.filter(w=>titleWords.includes(w)).length/Math.max(1,new Set([...titleWords,...nameWords]).size):0;
-    if(meta.num&&current){if(meta.num===current)score+=1.8;else score-=1;}
+    if(meta.num&&current){if(String(meta.num).replace(/^0+(?=\d)/,'')===current)score+=1.8;else score-=1;}
     if(meta.title&&name.includes(normalize(meta.title).slice(0,35)))score+=0.8;
     return {lesson:x,score};
   }).sort((a,b)=>b.score-a.score);
@@ -35,9 +35,10 @@ export function sourceList(lesson,types){
   return list;
 }
 export function offlineProposals(lesson,opened,types, inclusive={}){
-  const anchors=opened.snapshot.anchors;
-  const firstGoal=anchors.find(x=>x.id==='goals-competency');
-  const hGoal=anchors.find(x=>x.id==='goals-inclusion');
+  const unitId=inclusive.unitId||opened.snapshot.units?.[0]?.id;
+  const anchors=opened.snapshot.anchors.filter(a=>!unitId||a.unitId===unitId);
+  const firstGoal=anchors.find(x=>x.id.startsWith('goals-competency'));
+  const hGoal=anchors.find(x=>x.id.startsWith('goals-inclusion'));
   const act=anchors.find(x=>x.kind==='activity' && x.step==='Bước 1');
   const act2=anchors.find(x=>x.kind==='activity' && x.step==='Bước 2');
   const tail=anchors.find(x=>x.kind==='activity-end')||null;
@@ -49,7 +50,7 @@ export function offlineProposals(lesson,opened,types, inclusive={}){
     for(const item of codes){
       const raw=item.text.replace(/^Học sinh\s*/i,'HS ').replace(/^HS\s*/i,'HS ');
       res.push({type,code:item.code,anchorId:firstGoal?.id||'',content:raw||`Phát triển ${type} ${item.code} trong bài học.`,reason:'Không tìm thấy mục tiêu năng lực phù hợp.',accepted:true,slot:'goal'});
-      const target=type==='NLS'?act:act2;
+      const target=act; // NLS and AI tasks belong to Bước 1, not Bước 2.
       res.push({type,code:item.code,anchorId:target?.id||'',content:`GV giao nhiệm vụ cho HS: ${raw.charAt(0).toLowerCase()+raw.slice(1)}`,reason:'Không tìm được bước thực hiện phù hợp với hoạt động.',accepted:true,slot:'activity'});
       if(type==='NLS' && item===codes[0]){
         res.push({type,code:'',anchorId:tail?.id||'',content:'HS trình bày kết quả nhiệm vụ NLS ngay trong bài tập SGK và nêu cách đã kiểm chứng.',reason:'Không xác định được cuối Bước 1.',accepted:true,slot:'step1-summary'});
@@ -58,8 +59,14 @@ export function offlineProposals(lesson,opened,types, inclusive={}){
     }
   }
   if(types.includes('HSHN')){
-    res.push({type:'HSHN',code:'',anchorId:hGoal?.id||'',content:inclusiveObjectives(opened,lesson,inclusive),reason:'Không có tiểu mục mục tiêu giáo dục hòa nhập.',accepted:true,slot:'goal'});
-    res.push({type:'HSHN',code:'',anchorId:act2?.id||'',content:inclusiveActivity(lesson,inclusive),reason:'Không xác định được Bước 2 hoặc cột Hoạt động GV và HS.',accepted:true,slot:'activity'});
+    const hGoals=safeInclusiveObjectives(opened,lesson,inclusive);
+    res.push({type:'HSHN',code:'',anchorId:hGoals.reason?'':hGoal?.id||'',content:hGoals.content,reason:hGoals.reason||(!hGoal?'Không xác định đúng mục Phẩm chất.':''),accepted:true,slot:'goal'});
+    const seen=new Set();
+    for(const step2 of anchors.filter(a=>a.kind==='activity'&&a.step==='Bước 2')){
+      if(seen.has(step2.activity))continue;seen.add(step2.activity);
+      res.push({type:'HSHN',code:'',anchorId:step2.id,content:inclusiveActivity(lesson,inclusive,step2.activity),reason:'',accepted:true,slot:'activity'});
+    }
+    if(!seen.size)res.push({type:'HSHN',code:'',anchorId:'',content:inclusiveActivity(lesson,inclusive),reason:'Không xác định được Bước 2 trong cột Tổ chức thực hiện của bài.',accepted:true,slot:'activity'});
   }
   return res;
 }
